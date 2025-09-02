@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محول النص إلى كلام - اللهجة العربية</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 150px;
+            font-family: inherit;
+            direction: rtl;
+            text-align: right;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            direction: rtl;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .audio-section {
+            text-align: center;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>محول النص إلى كلام</h1>
+        <p id="configSummary" style="text-align: center; color: #666; margin-bottom: 30px;">
+            حسين - أداء معلم - الأردنية (الجنوبية - الكرك ومعان)
+        </p>
+
+        <div class="input-section">
+            <label for="dialectSelect">اختر اللهجة:</label>
+            <select id="dialectSelect" onchange="updateDialectDisplay()">
+                <option value="22">الأردنية (العمانية - المدنية)</option>
+                <option value="23">الأردنية (الشمالية - إربد والرمثا)</option>
+                <option value="24" selected>الأردنية (الجنوبية - الكرك ومعان)</option>
+                <option value="25">الأردنية (البدوية - الوسطى والشرقية)</option>
+            </select>
+        </div>
+
+        <div class="input-section">
+            <label for="textInput">النص المراد تحويله:</label>
+            <textarea 
+                id="textInput" 
+                placeholder="اكتب هنا النص..."
+                dir="rtl"
+            ></textarea>
+        </div>
+        
+        <div class="controls">
+            <button id="generateBtn" onclick="generateSpeech()">
+                🔊 تحويل إلى كلام
+            </button>
+            <button id="showApiBtn" onclick="showAPIData()">
+                🔍 عرض بيانات API
+            </button>
+        </div>
+        
+        <div class="error" id="errorMsg"></div>
+        <div class="loading" id="loadingMsg">جاري التحويل...</div>
+        
+        <div class="audio-section">
+            <audio id="audioPlayer" controls style="display: none;"></audio>
+        </div>
+        
+        <div id="apiDataModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; max-width: 90%; max-height: 80%; overflow-y: auto;">
+                <h3 style="margin-bottom: 20px; text-align: center;">بيانات API المتاحة</h3>
+                <div id="apiDataContent"></div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="closeAPIData()">إغلاق</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'sk_eyJpdiI6ImhmRm42ekkxMW5mWkFLb0lKdVFPdXc9PSIsInZhbHVlIjoiMElLaVhrWTdnSU56UWdveEkxQ0VrM1RIRFZLbldrbHJVUkdVZEVoU0NwaTdSRTA2Sm54YUY3V0JxeGhwNDZZdSIsIm1hYyI6IjMyNjBjMDdhNDUzMTA4MmU3ZTc0YmE5NmZmNDUyYjJiMzYzYWQ0NmMxNjgyYWEzOTg3ZTFhNjgwNDdlNDE2MzkiLCJ0YWciOiIifQ==';
+        const API_BASE_URL = 'https://lahajati.ai/api/v1';
+
+        let availableVoices = [];
+        let availableDialects = [];
+        let availablePerformances = [];
+
+        // Available dialect options
+        function initializeApp() {
+            // Set fixed values directly
+            availableVoices = [{id_voice: 'l6ErPsa0knOuPHhg7QtW3zyr', display_name: 'حسين'}];
+            availablePerformances = [{performance_id: '1798', display_name: 'أداء معلم يشرح تجربة علمية'}];
+            availableDialects = [
+                {dialect_id: '22', display_name: 'الأردنية (العمانية - المدنية)'},
+                {dialect_id: '23', display_name: 'الأردنية (الشمالية - إربد والرمثا)'},
+                {dialect_id: '24', display_name: 'الأردنية (الجنوبية - الكرك ومعان)'},
+                {dialect_id: '25', display_name: 'الأردنية (البدوية - الوسطى والشرقية)'}
+            ];
+            
+            // Enable the button immediately
+            document.getElementById('generateBtn').disabled = false;
+            
+            // Update display with default dialect
+            updateDialectDisplay();
+        }
+
+        async function generateSpeech() {
+            const textInput = document.getElementById('textInput');
+            const voiceSelect = document.getElementById('voiceSelect');
+            const performanceSelect = document.getElementById('performanceSelect');
+            const dialectSelect = document.getElementById('dialectSelect');
+            const generateBtn = document.getElementById('generateBtn');
+            const loadingMsg = document.getElementById('loadingMsg');
+            const errorMsg = document.getElementById('errorMsg');
+            const audioPlayer = document.getElementById('audioPlayer');
+            
+            const text = textInput.value.trim();
+            // Get selected dialect from dropdown
+            const selectedVoice = 'l6ErPsa0knOuPHhg7QtW3zyr';
+            const selectedPerformance = '1798';
+            const selectedDialect = dialectSelect.value;
+            
+            if (!text) {
+                showError('يرجى إدخال النص المراد تحويله');
+                return;
+            }
+            
+            hideError();
+            audioPlayer.style.display = 'none';
+            loadingMsg.style.display = 'block';
+            generateBtn.disabled = true;
+            
+            try {
+                const requestBody = {
+                    text: text,
+                    id_voice: selectedVoice,
+                    input_mode: "0",
+                    performance_id: selectedPerformance,
+                    dialect_id: selectedDialect
+                };
+                
+                const response = await fetch(`${API_BASE_URL}/text-to-speech-absolute-control`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'audio/mpeg'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`API Error ${response.status}: ${JSON.stringify(errorData)}`);
+                }
+                
+                const audioBlob = await response.blob();
+                
+                if (audioBlob.size === 0) {
+                    throw new Error('تم إرجاع ملف صوتي فارغ');
+                }
+                
+                const audioUrl = URL.createObjectURL(audioBlob);
+                audioPlayer.src = audioUrl;
+                audioPlayer.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error generating speech:', error);
+                showError(`خطأ في تحويل النص: ${error.message}`);
+            } finally {
+                loadingMsg.style.display = 'none';
+                generateBtn.disabled = false;
+            }
+        }
+        
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = message;
+            errorMsg.style.display = 'block';
+        }
+        
+        function hideError() {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.style.display = 'none';
+        }
+
+
+        function showAPIData() {
+            const modal = document.getElementById('apiDataModal');
+            const content = document.getElementById('apiDataContent');
+            
+            let html = '<div style="direction: rtl; text-align: right;">';
+            
+            // Voices section
+            html += '<h4>الأصوات المتاحة:</h4><ul>';
+            availableVoices.forEach(voice => {
+                html += `<li><strong>${voice.display_name}</strong> - ID: ${voice.id_voice} (${voice.gender})</li>`;
+            });
+            html += '</ul><br>';
+            
+            // Performances section
+            html += '<h4>أنماط الأداء المتاحة:</h4><ul>';
+            availablePerformances.forEach(perf => {
+                const perfId = perf.performance_id || perf.id;
+                html += `<li><strong>${perf.display_name || perf.name}</strong> - ID: ${perfId}</li>`;
+            });
+            html += '</ul><br>';
+            
+            // Dialects section
+            html += '<h4>اللهجات المتاحة:</h4><ul>';
+            availableDialects.forEach(dialect => {
+                const dialectId = dialect.dialect_id || dialect.id;
+                html += `<li><strong>${dialect.display_name}</strong> - ID: ${dialectId}</li>`;
+            });
+            html += '</ul>';
+            
+            html += '</div>';
+            
+            content.innerHTML = html;
+            modal.style.display = 'block';
+        }
+
+        function closeAPIData() {
+            document.getElementById('apiDataModal').style.display = 'none';
+        }
+
+        function updateDialectDisplay() {
+            const dialectSelect = document.getElementById('dialectSelect');
+            const configSummary = document.getElementById('configSummary');
+            const selectedOption = dialectSelect.options[dialectSelect.selectedIndex];
+            const dialectName = selectedOption.text;
+            
+            configSummary.textContent = `حسين - أداء معلم - ${dialectName}`;
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        document.getElementById('textInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateSpeech();
+            }
+        });
+    </script>
+</body>
+</html>
