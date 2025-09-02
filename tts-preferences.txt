@@ -1,0 +1,39 @@
+TTS App Preferences Configuration
+=====================================
+
+Voice Settings:
+- Voice ID: l6ErPsa0knOuPHhg7QtW3zyr
+- Voice Name: حسين (Hussein)
+- Gender: Male
+
+Performance Settings:
+- Performance ID: 1798
+- Performance Name: أداء معلم يشرح تجربة علمية (حماسي وفضولي يائس)
+- Description: Teacher explaining scientific experiment (enthusiastic and curious)
+
+Dialect Settings:
+- Dialect ID: 5
+- Dialect Name: السعودية (الشمالية)
+- Description: Saudi Northern dialect
+
+API Configuration:
+- Base URL: https://lahajati.ai/api/v1
+- Endpoint: text-to-speech-absolute-control
+- Input Mode: "0" (Structured Mode)
+- Content-Type: application/json
+- Accept: audio/mpeg
+
+Request Format:
+{
+    "text": "[user input text]",
+    "id_voice": "l6ErPsa0knOuPHhg7QtW3zyr",
+    "input_mode": "0",
+    "performance_id": "1798",
+    "dialect_id": "5"
+}
+
+Notes:
+- These settings provide the best quality for Arabic text-to-speech
+- Saudi Northern dialect is closest available to Palestinian/Jordanian
+- Hussein voice provides clear male pronunciation
+- Teacher performance style is enthusiastic and engaging

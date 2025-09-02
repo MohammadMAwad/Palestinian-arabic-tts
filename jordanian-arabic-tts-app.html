@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jordanian Arabic Text-to-Speech Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 150px;
+            font-family: inherit;
+            direction: ltr;
+            text-align: left;
+            transition: border-color 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            direction: ltr;
+            transition: border-color 0.3s ease;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            font-weight: 600;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .audio-section {
+            text-align: center;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            display: none;
+        }
+
+        .config-summary {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .dialect-info {
+            font-size: 0.9em;
+            color: #777;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ Jordanian Arabic Text-to-Speech</h1>
+        <div class="config-summary" id="configSummary">
+            <strong>Current Voice:</strong> Hussein - Teacher Performance<br>
+            <span class="dialect-info">Southern Jordanian (Karak and Ma'an)</span>
+        </div>
+
+        <div class="input-section">
+            <label for="dialectSelect">🌍 Select Jordanian Dialect:</label>
+            <select id="dialectSelect" onchange="updateDialectDisplay()">
+                <option value="22">Ammani Jordanian (Urban)</option>
+                <option value="23">Northern Jordanian (Irbid and Ramtha)</option>
+                <option value="24" selected>Southern Jordanian (Karak and Ma'an)</option>
+                <option value="25">Bedouin Jordanian (Central and Eastern)</option>
+            </select>
+        </div>
+
+        <div class="input-section">
+            <label for="textInput">📝 Enter Arabic Text:</label>
+            <textarea 
+                id="textInput" 
+                placeholder="Type your Arabic text here..."
+                dir="rtl"
+                style="text-align: right; direction: rtl;"
+            ></textarea>
+        </div>
+        
+        <div class="controls">
+            <button id="generateBtn" onclick="generateSpeech()">
+                🔊 Convert to Speech
+            </button>
+            <button id="showApiBtn" onclick="showAPIData()">
+                🔍 Show API Data
+            </button>
+        </div>
+        
+        <div class="error" id="errorMsg"></div>
+        <div class="loading" id="loadingMsg">🎵 Converting to speech...</div>
+        
+        <div class="audio-section">
+            <audio id="audioPlayer" controls style="display: none;"></audio>
+        </div>
+        
+        <!-- API Data Modal -->
+        <div id="apiDataModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000;">
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 30px; border-radius: 15px; max-width: 90%; max-height: 80%; overflow-y: auto;">
+                <h3 style="margin-bottom: 20px; text-align: center;">📊 Available API Data</h3>
+                <div id="apiDataContent"></div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button onclick="closeAPIData()">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'sk_eyJpdiI6ImhmRm42ekkxMW5mWkFLb0lKdVFPdXc9PSIsInZhbHVlIjoiMElLaVhrWTdnSU56UWdveEkxQ0VrM1RIRFZLbldrbHJVUkdVZEVoU0NwaTdSRTA2Sm54YUY3V0JxeGhwNDZZdSIsIm1hYyI6IjMyNjBjMDdhNDUzMTA4MmU3ZTc0YmE5NmZmNDUyYjJiMzYzYWQ0NmMxNjgyYWEzOTg3ZTFhNjgwNDdlNDE2MzkiLCJ0YWciOiIifQ==';
+        const API_BASE_URL = 'https://lahajati.ai/api/v1';
+
+        let availableVoices = [];
+        let availableDialects = [];
+        let availablePerformances = [];
+
+        // Initialize application with fixed values
+        function initializeApp() {
+            // Set fixed voice and performance data
+            availableVoices = [{id_voice: 'l6ErPsa0knOuPHhg7QtW3zyr', display_name: 'Hussein'}];
+            availablePerformances = [{performance_id: '1798', display_name: 'Teacher explaining a scientific experiment'}];
+            availableDialects = [
+                {dialect_id: '22', display_name: 'Ammani Jordanian (Urban)'},
+                {dialect_id: '23', display_name: 'Northern Jordanian (Irbid and Ramtha)'},
+                {dialect_id: '24', display_name: 'Southern Jordanian (Karak and Ma\'an)'},
+                {dialect_id: '25', display_name: 'Bedouin Jordanian (Central and Eastern)'}
+            ];
+            
+            // Enable the generate button
+            document.getElementById('generateBtn').disabled = false;
+            
+            // Update display with default dialect
+            updateDialectDisplay();
+        }
+
+        async function generateSpeech() {
+            const textInput = document.getElementById('textInput');
+            const dialectSelect = document.getElementById('dialectSelect');
+            const generateBtn = document.getElementById('generateBtn');
+            const loadingMsg = document.getElementById('loadingMsg');
+            const errorMsg = document.getElementById('errorMsg');
+            const audioPlayer = document.getElementById('audioPlayer');
+            
+            const text = textInput.value.trim();
+            // Fixed voice and performance settings
+            const selectedVoice = 'l6ErPsa0knOuPHhg7QtW3zyr';
+            const selectedPerformance = '1798';
+            const selectedDialect = dialectSelect.value;
+            
+            if (!text) {
+                showError('Please enter Arabic text to convert to speech');
+                return;
+            }
+            
+            hideError();
+            audioPlayer.style.display = 'none';
+            loadingMsg.style.display = 'block';
+            generateBtn.disabled = true;
+            
+            try {
+                const requestBody = {
+                    text: text,
+                    id_voice: selectedVoice,
+                    input_mode: "0",
+                    performance_id: selectedPerformance,
+                    dialect_id: selectedDialect
+                };
+                
+                const response = await fetch(`${API_BASE_URL}/text-to-speech-absolute-control`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'audio/mpeg'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`API Error ${response.status}: ${JSON.stringify(errorData)}`);
+                }
+                
+                const audioBlob = await response.blob();
+                
+                if (audioBlob.size === 0) {
+                    throw new Error('Received empty audio file');
+                }
+                
+                const audioUrl = URL.createObjectURL(audioBlob);
+                audioPlayer.src = audioUrl;
+                audioPlayer.style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error generating speech:', error);
+                showError(`Error converting text to speech: ${error.message}`);
+            } finally {
+                loadingMsg.style.display = 'none';
+                generateBtn.disabled = false;
+            }
+        }
+        
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.textContent = message;
+            errorMsg.style.display = 'block';
+        }
+        
+        function hideError() {
+            const errorMsg = document.getElementById('errorMsg');
+            errorMsg.style.display = 'none';
+        }
+
+        function showAPIData() {
+            const modal = document.getElementById('apiDataModal');
+            const content = document.getElementById('apiDataContent');
+            
+            let html = '<div style="text-align: left;">';
+            
+            // Voices section
+            html += '<h4>🎤 Available Voices:</h4><ul>';
+            availableVoices.forEach(voice => {
+                html += `<li><strong>${voice.display_name}</strong> - ID: ${voice.id_voice}</li>`;
+            });
+            html += '</ul><br>';
+            
+            // Performances section
+            html += '<h4>🎭 Available Performance Styles:</h4><ul>';
+            availablePerformances.forEach(perf => {
+                const perfId = perf.performance_id || perf.id;
+                html += `<li><strong>${perf.display_name || perf.name}</strong> - ID: ${perfId}</li>`;
+            });
+            html += '</ul><br>';
+            
+            // Dialects section
+            html += '<h4>🌍 Available Dialects:</h4><ul>';
+            availableDialects.forEach(dialect => {
+                const dialectId = dialect.dialect_id || dialect.id;
+                html += `<li><strong>${dialect.display_name}</strong> - ID: ${dialectId}</li>`;
+            });
+            html += '</ul>';
+            
+            html += '</div>';
+            
+            content.innerHTML = html;
+            modal.style.display = 'block';
+        }
+
+        function closeAPIData() {
+            document.getElementById('apiDataModal').style.display = 'none';
+        }
+
+        function updateDialectDisplay() {
+            const dialectSelect = document.getElementById('dialectSelect');
+            const configSummary = document.getElementById('configSummary');
+            const selectedOption = dialectSelect.options[dialectSelect.selectedIndex];
+            const dialectName = selectedOption.text;
+            
+            configSummary.innerHTML = `
+                <strong>Current Voice:</strong> Hussein - Teacher Performance<br>
+                <span class="dialect-info">${dialectName}</span>
+            `;
+        }
+        
+        // Initialize the app when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+
+        // Keyboard shortcut support
+        document.getElementById('textInput').addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                generateSpeech();
+            }
+        });
+    </script>
+</body>
+</html>
